@@ -158,6 +158,16 @@ class PileupSuite extends TestUtil.SparkFunSuite with Matchers with TableDrivenP
 
   }
 
+  sparkTest("test pileup element context") {
+    val read = TestUtil.makeRead("ATCTGATGACTCAATCTGATGACTCA", "26M", "26", 0, "chr1")
+    val firstElement = pileupElementFromRead(read, 13)
+
+    firstElement.isMatch should be(true)
+    firstElement.leftContext(3) should be(Bases.stringToBases("TCA"))
+    firstElement.rightContext(3) should be(Bases.stringToBases("ATC"))
+
+  }
+
   sparkTest("test pileup element creation with multiple cigar elements") {
     val read = TestUtil.makeRead("AAATTT", "3M3M", "6", 0, "chr1")
 

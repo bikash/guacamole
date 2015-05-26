@@ -156,6 +156,9 @@ case class PileupElement(
 
   lazy val allele: Allele = Allele(referenceBases, sequencedBases)
 
+  def leftContext(n: Int): Seq[Byte] = read.sequence.slice((locus - read.start).toInt - n, (locus - read.start).toInt)
+  def rightContext(n: Int): Seq[Byte] = read.sequence.slice((locus - read.start).toInt, (locus - read.start).toInt + n)
+
   /*
    * Base quality score, phred-scaled.
    *
