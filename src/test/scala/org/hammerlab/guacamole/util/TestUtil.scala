@@ -166,6 +166,7 @@ object TestUtil extends Matchers {
       mate = mate)
   }
 
+  def assertBases(bases1: String, bases2: String) = bases1 should equal(bases2)
   def assertBases(bases1: Iterable[Byte], bases2: String) = Bases.basesToString(bases1) should equal(bases2)
 
   def testDataPath(filename: String): String = {
