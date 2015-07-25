@@ -18,8 +18,10 @@
 
 package org.hammerlab.guacamole.variants
 
+import breeze.linalg.DenseVector
 import org.bdgenomics.adam.util.PhredUtils
 import org.hammerlab.guacamole.pileup.Pileup
+import breeze.stats.{median, mean}
 
 /**
  *
@@ -38,15 +40,17 @@ case class AlleleEvidence(likelihood: Double,
                           alleleReadDepth: Int,
                           forwardDepth: Int,
                           alleleForwardDepth: Int,
-                          averageMappingQuality: Double,
-                          averageBaseQuality: Double,
-                          averageMismatchesPerRead: Double) {
+                          meanMappingQuality: Double,
+                          medianMappingQuality: Double,
+                          meanBaseQuality: Double,
+                          medianBaseQuality: Double,
+                          medianMismatchesPerRead: Double) {
 
   lazy val phredScaledLikelihood = PhredUtils.successProbabilityToPhred(likelihood - 1e-10) //subtract small delta to prevent p = 1
   lazy val variantAlleleFrequency = alleleReadDepth.toFloat / readDepth
-  
-  override def toString = 
-    s"$likelihood, $readDepth, $alleleReadDepth, $alleleForwardDepth, $averageMappingQuality, $averageBaseQuality, $averageMismatchesPerRead"
+
+  override def toString =
+    s"$likelihood, $readDepth, $alleleReadDepth, $alleleForwardDepth, $meanMappingQuality, $medianMappingQuality, $medianBaseQuality, $meanBaseQuality, $medianMismatchesPerRead"
 }
 
 //class AlleleEvidenceSerializer extends Serializer[AlleleEvidence] {
@@ -96,16 +100,21 @@ object AlleleEvidence {
             alleleReadDepth: Int,
             allelePositiveReadDepth: Int,
             pileup: Pileup): AlleleEvidence = {
-
+    
+    val alignmentScores = DenseVector(pileup.elements.filter(!_.isMatch).map(_.read.alignmentQuality):_*)
+    val baseQualityScores = DenseVector(pileup.elements.filter(!_.isMatch).map(_.qualityScore):_*)
+    
     AlleleEvidence(
       likelihood,
       pileup.depth,
       alleleReadDepth,
       pileup.positiveDepth,
       allelePositiveReadDepth,
-      pileup.elements.map(_.read.alignmentQuality).sum.toFloat / pileup.depth,
-      pileup.elements.map(_.qualityScore).sum.toFloat / pileup.depth,
-      pileup.elements.map(_.read.mdTag.countOfMismatches).sum.toFloat / pileup.depth
+      meanMappingQuality = mean(pileup.elements.filter(!_.isMatch).map(_.read.alignmentQuality.toDouble)),
+      medianMappingQuality = median(alignmentScores),
+      mean( pileup.elements.filter(!_.isMatch).map(_.qualityScore.toDouble)),
+      median(baseQualityScores),
+      median(DenseVector(pileup.elements.filter(!_.isMatch).map(_.read.mdTag.countOfMismatches):_*))
     )
   }
 

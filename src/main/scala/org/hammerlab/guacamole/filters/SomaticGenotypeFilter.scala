@@ -21,8 +21,8 @@ package org.hammerlab.guacamole.filters
 import org.apache.spark.rdd.RDD
 import org.hammerlab.guacamole.Common.Arguments.Base
 import org.hammerlab.guacamole._
-import org.hammerlab.guacamole.variants.{ CalledAllele, AlleleEvidence, CalledSomaticAllele }
-import org.kohsuke.args4j.{ Option => Args4jOption }
+import org.hammerlab.guacamole.variants.CalledSomaticAllele
+import org.kohsuke.args4j.{Option => Args4jOption}
 
 /**
  * Filter to remove genotypes where the somatic likelihood is low
@@ -166,8 +166,8 @@ object SomaticAverageMappingQualityFilter {
   def hasMinimumAverageMappingQuality(somaticGenotype: CalledSomaticAllele,
                                       minAverageMappingQuality: Int): Boolean = {
 
-    somaticGenotype.tumorEvidence.averageMappingQuality > minAverageMappingQuality &&
-      somaticGenotype.normalEvidence.averageMappingQuality > minAverageMappingQuality
+    somaticGenotype.tumorEvidence.meanMappingQuality > minAverageMappingQuality &&
+      somaticGenotype.normalEvidence.meanMappingQuality > minAverageMappingQuality
   }
 
   /**
@@ -191,8 +191,8 @@ object SomaticAverageBaseQualityFilter {
   def hasMinimumAverageBaseQuality(somaticGenotype: CalledSomaticAllele,
                                    minAverageBaseQuality: Int): Boolean = {
 
-    somaticGenotype.tumorEvidence.averageBaseQuality > minAverageBaseQuality &&
-      somaticGenotype.normalEvidence.averageBaseQuality > minAverageBaseQuality
+    somaticGenotype.tumorEvidence.meanMappingQuality > minAverageBaseQuality &&
+      somaticGenotype.normalEvidence.meanMappingQuality > minAverageBaseQuality
   }
 
   /**
