@@ -215,7 +215,7 @@ object SomaticStandard {
           // non-reference alleles here and rework downstream assumptions accordingly.
           allele <- mostLikelyTumorGenotype.getNonReferenceAlleles.filter(!_.altBases.isEmpty).headOption.toSeq
           tumorEvidence = AlleleEvidence(mostLikelyTumorGenotypeLikelihood, allele, filteredTumorPileup)
-          normalEvidence = AlleleEvidence(normalVariantsTotalLikelihood, allele, filteredNormalPileup)
+          normalEvidence = AlleleEvidence(normalVariantsTotalLikelihood, Allele(allele.refBases, allele.refBases), filteredNormalPileup)
         } yield {
           CalledSomaticAllele(
             tumorPileup.sampleName,
