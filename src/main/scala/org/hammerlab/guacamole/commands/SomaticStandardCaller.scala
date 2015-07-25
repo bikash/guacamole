@@ -29,7 +29,11 @@ import org.hammerlab.guacamole.filters.{ PileupFilter, SomaticAlternateReadDepth
 import org.hammerlab.guacamole.likelihood.Likelihood
 import org.hammerlab.guacamole.pileup.Pileup
 import org.hammerlab.guacamole.reads.Read
+<<<<<<< HEAD
 import org.hammerlab.guacamole.variants.{ AlleleConversions, AlleleEvidence, CalledSomaticAllele }
+=======
+import org.hammerlab.guacamole.variants.{Allele, AlleleConversions, AlleleEvidence, CalledSomaticAllele}
+>>>>>>> 6ffff4f... add metric for avg number of mismatches per read
 import org.hammerlab.guacamole.{ Common, DelayedMessages, DistributedUtil, SparkCommand }
 import org.kohsuke.args4j.{ Option => Args4jOption }
 
