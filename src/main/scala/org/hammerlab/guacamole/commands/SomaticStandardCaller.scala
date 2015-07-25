@@ -23,14 +23,13 @@ import org.apache.spark.rdd.RDD
 import org.hammerlab.guacamole.Common.Arguments.SomaticCallerArgs
 import org.hammerlab.guacamole.filters.PileupFilter.PileupFilterArguments
 import org.hammerlab.guacamole.filters.SomaticGenotypeFilter.SomaticGenotypeFilterArguments
-import org.hammerlab.guacamole.filters.{ PileupFilter, SomaticAlternateReadDepthFilter, SomaticGenotypeFilter, SomaticReadDepthFilter }
+import org.hammerlab.guacamole.filters.{PileupFilter, SomaticAlternateReadDepthFilter, SomaticGenotypeFilter, SomaticReadDepthFilter}
 import org.hammerlab.guacamole.likelihood.Likelihood
 import org.hammerlab.guacamole.pileup.Pileup
 import org.hammerlab.guacamole.reads.Read
-import org.hammerlab.guacamole.variants.{ AlleleConversions, AlleleEvidence, CalledSomaticAllele }
-import org.hammerlab.guacamole.windowing.SlidingWindow
-import org.hammerlab.guacamole.{ Common, DelayedMessages, DistributedUtil, SparkCommand }
-import org.kohsuke.args4j.{ Option => Args4jOption }
+import org.hammerlab.guacamole.variants.{AlleleConversions, AlleleEvidence, CalledSomaticAllele}
+import org.hammerlab.guacamole.{Common, DelayedMessages, DistributedUtil, SparkCommand}
+import org.kohsuke.args4j.{Option => Args4jOption}
 
 /**
  * Simple subtraction based somatic variant caller
@@ -48,6 +47,9 @@ object SomaticStandard {
 
     @Args4jOption(name = "--odds", usage = "Minimum log odds threshold for possible variant candidates")
     var oddsThreshold: Int = 20
+
+    @Args4jOption(name = "--print-debug-output", usage = "Output for debugging purposes")
+    var printDebugOutput: Boolean = false
 
   }
 
@@ -116,10 +118,15 @@ object SomaticStandard {
       val filteredGenotypes: RDD[CalledSomaticAllele] = SomaticGenotypeFilter(potentialGenotypes, args)
       Common.progress("Computed %,d genotypes after basic filtering".format(filteredGenotypes.count))
 
-      Common.writeVariantsFromArguments(
-        args,
-        filteredGenotypes.flatMap(AlleleConversions.calledSomaticAlleleToADAMGenotype)
-      )
+      
+      if (args.printDebugOutput) {
+        filteredGenotypes.map(_.toString).saveAsTextFile(args.variantOutput)
+      } else {
+        Common.writeVariantsFromArguments(
+          args,
+          filteredGenotypes.flatMap(AlleleConversions.calledSomaticAlleleToADAMGenotype)
+        )
+      }
 
       DelayedMessages.default.print()
     }

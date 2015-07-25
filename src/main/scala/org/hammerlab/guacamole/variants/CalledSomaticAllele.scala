@@ -48,6 +48,9 @@ case class CalledSomaticAllele(sampleName: String,
   // P ( variant in tumor AND no variant in normal) = P(variant in tumor) * ( 1 - P(variant in normal) )
   lazy val phredScaledSomaticLikelihood =
     PhredUtils.successProbabilityToPhred(tumorEvidence.likelihood * (1 - normalEvidence.likelihood) - 1e-10)
+  
+  override def toString = 
+    s"$referenceContig, $start, $allele, $somaticLogOdds, $phredScaledSomaticLikelihood, $tumorEvidence, $normalEvidence"
 }
 
 class CalledSomaticAlleleSerializer
