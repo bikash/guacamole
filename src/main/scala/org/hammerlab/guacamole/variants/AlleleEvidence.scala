@@ -18,8 +18,6 @@
 
 package org.hammerlab.guacamole.variants
 
-import com.esotericsoftware.kryo.io.{ Input, Output }
-import com.esotericsoftware.kryo.{ Kryo, Serializer }
 import org.bdgenomics.adam.util.PhredUtils
 import org.hammerlab.guacamole.pileup.Pileup
 
@@ -41,55 +39,57 @@ case class AlleleEvidence(likelihood: Double,
                           forwardDepth: Int,
                           alleleForwardDepth: Int,
                           averageMappingQuality: Double,
-                          averageBaseQuality: Double) {
+                          averageBaseQuality: Double,
+                          averageMismatchesPerRead: Double) {
 
   lazy val phredScaledLikelihood = PhredUtils.successProbabilityToPhred(likelihood - 1e-10) //subtract small delta to prevent p = 1
   lazy val variantAlleleFrequency = alleleReadDepth.toFloat / readDepth
   
   override def toString = 
-    s"$likelihood, $readDepth, $alleleReadDepth, $alleleForwardDepth, $averageMappingQuality, $averageBaseQuality"
+    s"$likelihood, $readDepth, $alleleReadDepth, $alleleForwardDepth, $averageMappingQuality, $averageBaseQuality, $averageMismatchesPerRead"
 }
 
-class AlleleEvidenceSerializer extends Serializer[AlleleEvidence] {
-  def write(kryo: Kryo, output: Output, obj: AlleleEvidence) = {
-    output.writeDouble(obj.likelihood)
-    output.writeInt(obj.readDepth)
-    output.writeInt(obj.alleleReadDepth)
-    output.writeInt(obj.forwardDepth)
-    output.writeInt(obj.alleleForwardDepth)
+//class AlleleEvidenceSerializer extends Serializer[AlleleEvidence] {
+//  def write(kryo: Kryo, output: Output, obj: AlleleEvidence) = {
+//    output.writeDouble(obj.likelihood)
+//    output.writeInt(obj.readDepth)
+//    output.writeInt(obj.alleleReadDepth)
+//    output.writeInt(obj.forwardDepth)
+//    output.writeInt(obj.alleleForwardDepth)
+//
+//    output.writeDouble(obj.averageMappingQuality)
+//    output.writeDouble(obj.averageBaseQuality)
+//
+//  }
+//
+//  def read(kryo: Kryo, input: Input, klass: Class[AlleleEvidence]): AlleleEvidence = {
+//
+//    val likelihood = input.readDouble()
+//    val readDepth = input.readInt()
+//    val alleleReadDepth = input.readInt()
+//    val forwardDepth = input.readInt()
+//    val alleleForwardDepth = input.readInt()
+//
+//    val averageMappingQuality = input.readDouble()
+//    val averageBaseQuality = input.readDouble()
+//
+//    AlleleEvidence(likelihood,
+//      readDepth,
+//      alleleReadDepth,
+//      forwardDepth,
+//      alleleForwardDepth,
+//      averageMappingQuality,
+//      averageBaseQuality,
+//      averageMismatchesPerRead
+//    )
+//
+//  }
+//}
 
-    output.writeDouble(obj.averageMappingQuality)
-    output.writeDouble(obj.averageBaseQuality)
-
-  }
-
-  def read(kryo: Kryo, input: Input, klass: Class[AlleleEvidence]): AlleleEvidence = {
-
-    val likelihood = input.readDouble()
-    val readDepth = input.readInt()
-    val alleleReadDepth = input.readInt()
-    val forwardDepth = input.readInt()
-    val alleleForwardDepth = input.readInt()
-
-    val averageMappingQuality = input.readDouble()
-    val averageBaseQuality = input.readDouble()
-
-    AlleleEvidence(likelihood,
-      readDepth,
-      alleleReadDepth,
-      forwardDepth,
-      alleleForwardDepth,
-      averageMappingQuality,
-      averageBaseQuality
-    )
-
-  }
-}
-
-trait HasGenotypeEvidenceSerializer {
-  lazy val alleleEvidenceSerializer: AlleleEvidenceSerializer = new AlleleEvidenceSerializer
-}
-
+//trait HasGenotypeEvidenceSerializer {
+//  lazy val alleleEvidenceSerializer: AlleleEvidenceSerializer = new AlleleEvidenceSerializer
+//}
+//
 object AlleleEvidence {
 
   def apply(likelihood: Double,
@@ -104,7 +104,8 @@ object AlleleEvidence {
       pileup.positiveDepth,
       allelePositiveReadDepth,
       pileup.elements.map(_.read.alignmentQuality).sum.toFloat / pileup.depth,
-      pileup.elements.map(_.qualityScore).sum.toFloat / pileup.depth
+      pileup.elements.map(_.qualityScore).sum.toFloat / pileup.depth,
+      pileup.elements.map(_.read.mdTag.countOfMismatches).sum.toFloat / pileup.depth
     )
   }
 
