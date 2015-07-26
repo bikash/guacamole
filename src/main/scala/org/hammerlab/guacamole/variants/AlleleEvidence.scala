@@ -110,10 +110,10 @@ object AlleleEvidence {
       alleleReadDepth,
       pileup.positiveDepth,
       allelePositiveReadDepth,
-      meanMappingQuality = mean(alignmentScores),
-      medianMappingQuality = median(alignmentScores),
-      mean(baseQualityScores),
-      median(baseQualityScores),
+      meanMappingQuality = if (alignmentScores.activeSize == 0) 0  else mean(alignmentScores),
+      medianMappingQuality = if (alignmentScores.activeSize == 0) 0  else median(alignmentScores),
+      if (baseQualityScores.activeSize == 0) 0 else mean(baseQualityScores),
+      if (baseQualityScores.activeSize == 0) 0 else median(baseQualityScores),
       median(DenseVector(pileup.elements.filter(!_.isMatch).map(_.read.mdTag.countOfMismatches).toArray))
     )
   }
