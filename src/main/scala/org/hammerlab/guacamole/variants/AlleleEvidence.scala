@@ -114,7 +114,7 @@ object AlleleEvidence {
       medianMappingQuality = if (alignmentScores.activeSize == 0) 0  else median(alignmentScores),
       if (baseQualityScores.activeSize == 0) 0 else mean(baseQualityScores),
       if (baseQualityScores.activeSize == 0) 0 else median(baseQualityScores),
-      median(DenseVector(pileup.elements.filter(!_.isMatch).map(_.read.mdTag.countOfMismatches).toArray))
+      if (baseQualityScores.activeSize == 0) 0 median(DenseVector(pileup.elements.filter(!_.isMatch).map(_.read.mdTag.countOfMismatches).toArray))
     )
   }
 
