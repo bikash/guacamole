@@ -19,9 +19,9 @@
 package org.hammerlab.guacamole.variants
 
 import breeze.linalg.DenseVector
+import breeze.stats.{ mean, median }
 import org.bdgenomics.adam.util.PhredUtils
 import org.hammerlab.guacamole.pileup.Pileup
-import breeze.stats.{median, mean}
 
 /**
  *
@@ -100,21 +100,21 @@ object AlleleEvidence {
             alleleReadDepth: Int,
             allelePositiveReadDepth: Int,
             pileup: Pileup): AlleleEvidence = {
-    
-    val alignmentScores = DenseVector(pileup.elements.filter(!_.isMatch).map(_.read.alignmentQuality):_*)
-    val baseQualityScores = DenseVector(pileup.elements.filter(!_.isMatch).map(_.qualityScore):_*)
-    
+
+    val alignmentScores = DenseVector(pileup.elements.filter(!_.isMatch).map(_.read.alignmentQuality.toDouble).toArray)
+    val baseQualityScores = DenseVector(pileup.elements.filter(!_.isMatch).map(_.qualityScore.toDouble).toArray)
+
     AlleleEvidence(
       likelihood,
       pileup.depth,
       alleleReadDepth,
       pileup.positiveDepth,
       allelePositiveReadDepth,
-      meanMappingQuality = mean(pileup.elements.filter(!_.isMatch).map(_.read.alignmentQuality.toDouble)),
+      meanMappingQuality = mean(alignmentScores),
       medianMappingQuality = median(alignmentScores),
-      mean( pileup.elements.filter(!_.isMatch).map(_.qualityScore.toDouble)),
+      mean(baseQualityScores),
       median(baseQualityScores),
-      median(DenseVector(pileup.elements.filter(!_.isMatch).map(_.read.mdTag.countOfMismatches):_*))
+      median(DenseVector(pileup.elements.filter(!_.isMatch).map(_.read.mdTag.countOfMismatches).toArray))
     )
   }
 

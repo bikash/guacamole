@@ -22,7 +22,7 @@ import org.apache.spark.rdd.RDD
 import org.hammerlab.guacamole.Common.Arguments.Base
 import org.hammerlab.guacamole._
 import org.hammerlab.guacamole.variants.CalledSomaticAllele
-import org.kohsuke.args4j.{Option => Args4jOption}
+import org.kohsuke.args4j.{ Option => Args4jOption }
 
 /**
  * Filter to remove genotypes where the somatic likelihood is low
