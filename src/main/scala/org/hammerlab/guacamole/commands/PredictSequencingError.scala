@@ -156,7 +156,6 @@ object PredictSequencingError {
 
         // Clear the default threshold.
         model.clearThreshold()
-        println(model.weights)
 
         // Compute raw scores on the test set.
         val scoreAndLabels = test.map { point =>
