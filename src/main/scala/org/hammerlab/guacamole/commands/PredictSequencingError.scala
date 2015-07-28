@@ -1,10 +1,12 @@
 package org.hammerlab.guacamole.commands
 
 import org.apache.spark.SparkContext
-import org.apache.spark.mllib.classification.LogisticRegressionWithSGD
+import org.apache.spark.mllib.classification.LogisticRegressionModel
 import org.apache.spark.mllib.evaluation.BinaryClassificationMetrics
 import org.apache.spark.mllib.linalg.{ Vector, Vectors }
+import org.apache.spark.mllib.optimization.{ LBFGS, LogisticGradient, SquaredL2Updater }
 import org.apache.spark.mllib.regression.LabeledPoint
+import org.apache.spark.mllib.util.MLUtils
 import org.apache.spark.rdd.RDD
 import org.bdgenomics.adam.rdd.ADAMContext
 import org.bdgenomics.formats.avro.Variant
@@ -139,12 +141,40 @@ object PredictSequencingError {
     override val name = "seqerror"
     override val description = ""
 
-    def evaluateModel(lr: LogisticRegressionWithSGD,
-                      data: RDD[LabeledPoint],
+    def trainModel(data: RDD[(Double, Vector)]): LogisticRegressionModel = {
+
+      val numFeatures = data.take(1).length
+
+      val numCorrections = 10
+      val convergenceTol = 1e-4
+      val maxNumIterations = 20
+      val regParam = 0.1
+      val initialWeightsWithIntercept = Vectors.dense(new Array[Double](numFeatures))
+
+      val (weightsWithIntercept, loss) = LBFGS.runLBFGS(
+        data,
+        new LogisticGradient(),
+        new SquaredL2Updater(),
+        numCorrections,
+        convergenceTol,
+        maxNumIterations,
+        regParam,
+        initialWeightsWithIntercept)
+
+      val model = new LogisticRegressionModel(
+        Vectors.dense(weightsWithIntercept.toArray.slice(0, weightsWithIntercept.size - 1)),
+        weightsWithIntercept(weightsWithIntercept.size - 1))
+
+      model.clearThreshold()
+      model
+    }
+
+    def evaluateModel(data: RDD[(Double, Vector)],
                       splits: Int,
                       splitPercent: Double = 0.7): Unit = {
 
       val splitRDDs = data.randomSplit(Array(splitPercent, 1 - splitPercent))
+
       for (split <- (0 until splits)) {
 
         val train = splitRDDs(0)
@@ -152,15 +182,12 @@ object PredictSequencingError {
         val test = splitRDDs(1)
         println(s"Test samples: ${test.count}")
 
-        val model = lr.run(train)
-
-        // Clear the default threshold.
-        model.clearThreshold()
+        val model = trainModel(train)
 
         // Compute raw scores on the test set.
         val scoreAndLabels = test.map { point =>
-          val score = model.predict(point.features)
-          (score, point.label)
+          val score = model.predict(point._2)
+          (score, point._1)
         }
 
         // Get evaluation metrics.
@@ -172,8 +199,6 @@ object PredictSequencingError {
     }
 
     override def run(args: Arguments, sc: SparkContext): Unit = {
-
-      //      val sqlContext = new SQLContext(sc)
 
       val filters = Read.InputFilters(mapped = true, nonDuplicate = true, passedVendorQualityChecks = true)
       val reads = Common.loadReadsFromArguments(args, sc, filters)
@@ -207,20 +232,15 @@ object PredictSequencingError {
       }
 
       val alternates = positiveAlternates
-        .map(_.toLabeledPoint(1))
-        .union(negativeAlternates.map(_.toLabeledPoint(0)))
+        .map(x => (1.0, MLUtils.appendBias(x.toSparseVector)))
+        .union(negativeAlternates.map(x => (0.0, MLUtils.appendBias(x.toSparseVector))))
 
-      val lr = new LogisticRegressionWithSGD()
-      lr.optimizer.setNumIterations(10)
       if (args.evaluate) {
-        evaluateModel(lr, alternates, args.splits, splitPercent = splitPercent)
+        evaluateModel(alternates, args.splits, splitPercent = splitPercent)
       }
 
       if (args.train) {
-        //val lr = new LogisticRegressionWithLBFGS() // LogisticRegressionWithSGD(1.0, 10, 0.01, 1.0 )
-        val model = lr.run(alternates)
-        // Clear the default threshold.
-        model.clearThreshold()
+        trainModel(alternates)
       }
     }
   }
