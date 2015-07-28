@@ -258,10 +258,15 @@ object PredictSequencingError {
       reads.mappedReads,
       lociPartitions,
       skipEmpty = true,
-      pileup => pileup
-        .elements
-        .flatMap(LocusErrorVector(_, contextLength))
-        .map(el => ((pileup.head.read.referenceContig, pileup.locus), el)).iterator
+      pileup =>
+        if (pileup.depth < 200) {
+          pileup
+            .elements
+            .flatMap(LocusErrorVector(_, contextLength))
+            .map(el => ((pileup.head.read.referenceContig, pileup.locus), el)).iterator
+        } else {
+          Iterator.empty
+        }
     )
 
     val allAlternatesWithDBSnp = allAlternates.leftOuterJoin(dbSNPKeyedVariants)
@@ -269,9 +274,9 @@ object PredictSequencingError {
       .filter(pe => pe._2._2.isDefined && pe._2._1.isMismatch)
       .sample(withReplacement = false, fraction = sampleFraction)
 
-    positiveAlternates.persist()
+    //positiveAlternates.persist()
     val numPositiveExamples = positiveAlternates.count
-    println(s"Positive examples: ${numPositiveExamples}")
+    //println(s"Positive examples: ${numPositiveExamples}")
 
     val allNegativeAlternates = allAlternatesWithDBSnp
       .filter(_._2._2.isEmpty)
@@ -283,8 +288,8 @@ object PredictSequencingError {
         withReplacement = false,
         fraction = math.min(1, numPositiveExamples.toFloat / totalNegativeCount))
 
-    negativeAlternates.persist()
-    println(s"Negative examples: ${negativeAlternates.count}")
+    //negativeAlternates.persist()
+    //println(s"Negative examples: ${negativeAlternates.count}")
     (positiveAlternates.map(_._2._1), negativeAlternates.map(_._2._1))
   }
 
