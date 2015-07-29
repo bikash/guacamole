@@ -37,8 +37,13 @@ case class Allele(refBases: Seq[Byte], altBases: Seq[Byte]) extends Ordered[Alle
 }
 
 object Allele {
+
   def apply(refBases: String, altBases: String): Allele = {
     Allele(Bases.stringToBases(refBases), Bases.stringToBases(altBases))
+  }
+
+  def apply(refBase: Byte, altBase: Byte): Allele = {
+    Allele(Seq(refBase), Seq(altBase))
   }
 }
 

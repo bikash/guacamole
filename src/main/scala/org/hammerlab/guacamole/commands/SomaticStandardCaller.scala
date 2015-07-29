@@ -18,6 +18,8 @@
 
 package org.hammerlab.guacamole.commands
 
+import breeze.linalg.{ DenseVector, logNormalize, sum }
+import breeze.numerics.exp
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.bdgenomics.adam.rdd.ADAMContext
@@ -29,14 +31,9 @@ import org.hammerlab.guacamole.filters.{ PileupFilter, SomaticAlternateReadDepth
 import org.hammerlab.guacamole.likelihood.Likelihood
 import org.hammerlab.guacamole.pileup.Pileup
 import org.hammerlab.guacamole.reads.Read
-<<<<<<< HEAD
-import org.hammerlab.guacamole.variants.{ AlleleConversions, AlleleEvidence, CalledSomaticAllele }
-=======
-import org.hammerlab.guacamole.variants.{Allele, AlleleConversions, AlleleEvidence, CalledSomaticAllele}
->>>>>>> 6ffff4f... add metric for avg number of mismatches per read
+import org.hammerlab.guacamole.variants._
 import org.hammerlab.guacamole.{ Common, DelayedMessages, DistributedUtil, SparkCommand }
 import org.kohsuke.args4j.{ Option => Args4jOption }
-
 /**
  * Simple subtraction based somatic variant caller
  *
@@ -98,6 +95,7 @@ object SomaticStandard {
               pileupNormal,
               oddsThreshold,
               minAlignmentQuality,
+              expectedTumorVaf = 0.5,
               filterMultiAllelic,
               maxReadDepth
             ).iterator
@@ -158,6 +156,7 @@ object SomaticStandard {
                                     normalPileup: Pileup,
                                     oddsThreshold: Int,
                                     minAlignmentQuality: Int = 1,
+                                    expectedTumorVaf: Double = 0.5,
                                     filterMultiAllelic: Boolean = false,
                                     maxReadDepth: Int = Int.MaxValue): Seq[CalledSomaticAllele] = {
 
@@ -188,12 +187,31 @@ object SomaticStandard {
        * Find the most likely genotype in the tumor sample
        * This is either the reference genotype or an heterozygous genotype with some alternate base
        */
-      val (mostLikelyTumorGenotype, mostLikelyTumorGenotypeLikelihood) =
-        Likelihood.likelihoodsOfAllPossibleGenotypesFromPileup(
-          filteredTumorPileup,
-          Likelihood.probabilityCorrectIncludingAlignment,
-          normalize = true
-        ).maxBy(_._2)
+
+      val referenceAllele = Allele(tumorPileup.referenceBase, tumorPileup.referenceBase)
+      val possibleAlleles = (referenceAllele :: filteredTumorPileup.elements.map(_.allele).toList).distinct.toArray
+      val alleleToIndex = possibleAlleles.zipWithIndex.toMap
+      val alleleElementProbabilities =
+        Likelihood.computeAlleleElementProbabilities(
+          filteredTumorPileup.elements,
+          possibleAlleles,
+          Likelihood.probabilityCorrectIncludingAlignment
+        )
+
+      val weightedHetGenotypeLikelihoods: DenseVector[Double] =
+        DenseVector(possibleAlleles.map(allele => {
+          val alleleRow1 = alleleElementProbabilities(alleleToIndex(referenceAllele), ::) * (1 - expectedTumorVaf)
+          val alleleRow2 = alleleElementProbabilities(alleleToIndex(allele), ::) * expectedTumorVaf
+          sum(breeze.numerics.log(alleleRow1 + alleleRow2))
+        }))
+
+      val depth = filteredTumorPileup.depth
+      val normalizedWeightedHetGenotypeLikelihoods: Array[(Genotype, Double)] =
+        possibleAlleles.map(allele => (Genotype(referenceAllele, allele))).zip(
+          exp(logNormalize(weightedHetGenotypeLikelihoods)).toArray
+        )
+
+      val (mostLikelyTumorGenotype, mostLikelyTumorGenotypeLikelihood) = normalizedWeightedHetGenotypeLikelihoods.maxBy(_._2)
 
       // The following lazy vals are only evaluated if mostLikelyTumorGenotype.hasVariantAllele
       lazy val normalLikelihoods =
@@ -210,8 +228,7 @@ object SomaticStandard {
       lazy val normalVariantsTotalLikelihood = normalVariantGenotypes.map(_._2).sum
       lazy val somaticOdds = mostLikelyTumorGenotypeLikelihood / normalVariantsTotalLikelihood
 
-      if (mostLikelyTumorGenotype.hasVariantAllele
-        && somaticOdds * 100 >= oddsThreshold) {
+      if (mostLikelyTumorGenotype.hasVariantAllele && somaticOdds * 100 >= oddsThreshold) {
         for {
           // NOTE(ryan): currently only look at the first non-ref allele in the most likely tumor genotype.
           // removeCorrelatedGenotypes depends on there only being one variant per locus.

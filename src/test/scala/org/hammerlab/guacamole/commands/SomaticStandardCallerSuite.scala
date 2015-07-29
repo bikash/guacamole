@@ -62,7 +62,8 @@ class SomaticStandardCallerSuite extends GuacFunSuite with Matchers with TableDr
           normalPileup,
           logOddsThreshold,
           minAlignmentQuality,
-          filterMultiAllelic
+          expectedTumorVaf = 0.5,
+          filterMultiAllelic = filterMultiAllelic
         )
 
         val foundVariant = SomaticGenotypeFilter(
