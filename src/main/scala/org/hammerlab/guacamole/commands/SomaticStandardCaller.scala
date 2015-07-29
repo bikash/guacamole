@@ -54,6 +54,9 @@ object SomaticStandard {
     @Args4jOption(name = "--dbsnp-vcf", required = false, usage = "VCF file to identify DBSNP variants")
     var dbSnpVcf: String = ""
 
+    @Args4jOption(name = "--expected-tumor-vaf", required = false, usage = "Expected tumor variant allele frequency")
+    var expectedTumorVaf: Int = 50
+
   }
 
   object Caller extends SparkCommand[Arguments] {
@@ -83,6 +86,7 @@ object SomaticStandard {
         normalReads.mappedReads
       )
 
+      val expectedTumorVaf = args.expectedTumorVaf
       var potentialGenotypes: RDD[CalledSomaticAllele] =
         DistributedUtil.pileupFlatMapTwoRDDs[CalledSomaticAllele](
           tumorReads.mappedReads,
@@ -95,7 +99,7 @@ object SomaticStandard {
               pileupNormal,
               oddsThreshold,
               minAlignmentQuality,
-              expectedTumorVaf = 0.5,
+              expectedTumorVaf = expectedTumorVaf / 100.0,
               filterMultiAllelic,
               maxReadDepth
             ).iterator
