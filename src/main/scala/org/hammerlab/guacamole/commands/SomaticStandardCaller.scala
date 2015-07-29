@@ -211,9 +211,9 @@ object SomaticStandard {
 
       val depth = filteredTumorPileup.depth
       val normalizedWeightedHetGenotypeLikelihoods: Array[(Genotype, Double)] =
-        possibleAlleles.map(allele => (Genotype(referenceAllele, allele))).zip(
-          exp(logNormalize(weightedHetGenotypeLikelihoods)).toArray
-        )
+        possibleAlleles
+          .map(allele => (Genotype(referenceAllele, allele)))
+          .zip(exp(logNormalize(weightedHetGenotypeLikelihoods)).toArray)
 
       val (mostLikelyTumorGenotype, mostLikelyTumorGenotypeLikelihood) = normalizedWeightedHetGenotypeLikelihoods.maxBy(_._2)
 
