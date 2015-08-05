@@ -1,5 +1,9 @@
 language: java
-sudo: false
+before_install:
+  - sudo rm /etc/mavenrc
+script:
+  - export MAVEN_OPTS="-XX:MaxPermSize=512m -Xmx4g"
+  - mvn clean install
 cache:
   directories:
   - .autoconf
