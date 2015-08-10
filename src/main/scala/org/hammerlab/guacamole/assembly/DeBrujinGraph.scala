@@ -2,7 +2,6 @@ package org.hammerlab.guacamole.assembly
 
 import scala.collection.mutable
 
-
 class DeBrujinGraph(val kmerSize: Int,
                     val kmerCounts: mutable.Map[String, Int]) {
 
@@ -15,7 +14,7 @@ class DeBrujinGraph(val kmerSize: Int,
         .keys
         .groupBy(kmerPrefix)
         .map(kv => (kv._1, kv._2.toList))
-        .toSeq:_*
+        .toSeq: _*
     )
 
   val suffixTable: mutable.Map[Kmer, List[KmerNode]] =
@@ -24,16 +23,16 @@ class DeBrujinGraph(val kmerSize: Int,
         .keys
         .groupBy(kmerSuffix)
         .map(kv => (kv._1, kv._2.toList))
-        .toSeq:_*
+        .toSeq: _*
     )
 
   val mergeIndex: mutable.Map[Kmer, (Int, Kmer)] = mutable.Map.empty
-  
+
   @inline
   private[assembly] def kmerPrefix(seq: KmerNode): Kmer = {
     seq.take(kmerSize - 1)
   }
-  
+
   @inline
   private[assembly] def kmerSuffix(seq: KmerNode): Kmer = {
     seq.takeRight(kmerSize - 1)
@@ -41,7 +40,7 @@ class DeBrujinGraph(val kmerSize: Int,
 
   /**
    * Remove a kmer from the graph
-   * Removes it from the count, prefix and suffix tables 
+   * Removes it from the count, prefix and suffix tables
    * @param kmer Kmer to remove
    * @return
    */
@@ -62,7 +61,6 @@ class DeBrujinGraph(val kmerSize: Int,
     removeFromTable(kmer, prefixTable, kmerPrefix)
     removeFromTable(kmer, suffixTable, kmerSuffix)
 
-
   }
 
   /**
@@ -79,7 +77,7 @@ class DeBrujinGraph(val kmerSize: Int,
    * Merge existing kmers in unique path
    */
   private[assembly] def mergeNodes(): Unit = {
-    val allNodes: mutable.Set[Kmer] = mutable.HashSet[Kmer](kmerCounts.keys.toSeq:_*)
+    val allNodes: mutable.Set[Kmer] = mutable.HashSet[Kmer](kmerCounts.keys.toSeq: _*)
     while (!allNodes.isEmpty) {
       val node = allNodes.head
       val forwardUniquePath = mergeForward(node)
@@ -92,9 +90,9 @@ class DeBrujinGraph(val kmerSize: Int,
           allNodes.remove(k)
           removeKmer(k)
         })
-        
+
         val mergedNode = DeBrujinGraph.mergeKmers(fullMergeablePath)
-        fullMergeablePath.zipWithIndex.foreach({case (node, index) => mergeIndex.update(node, (index, mergedNode))})
+        fullMergeablePath.zipWithIndex.foreach({ case (node, index) => mergeIndex.update(node, (index, mergedNode)) })
         val mergedNodePrefix = kmerPrefix(mergedNode)
         val mergedNodeSuffix = kmerSuffix(mergedNode)
         prefixTable(mergedNodePrefix) = mergedNode :: prefixTable.getOrElse(mergedNodePrefix, List.empty)
@@ -103,13 +101,13 @@ class DeBrujinGraph(val kmerSize: Int,
       }
     }
   }
-  
+
   private[assembly] def findMergeable(kmer: Kmer,
                                       searchForward: Boolean,
                                       avoidLoops: Boolean = true): Seq[Kmer] = {
-    
+
     val nextFunc: Kmer => Seq[Kmer] = if (searchForward) children else parents
-    val prevFunc: Kmer => Seq[Kmer]= if (searchForward) parents else children
+    val prevFunc: Kmer => Seq[Kmer] = if (searchForward) parents else children
 
     var current = kmer
     var visited: mutable.Set[Kmer] = mutable.Set(current)
@@ -122,7 +120,7 @@ class DeBrujinGraph(val kmerSize: Int,
       mergeable = current :: mergeable
       next = nextNodes
     }
-    
+
     mergeable
   }
 
@@ -150,46 +148,46 @@ class DeBrujinGraph(val kmerSize: Int,
                        maxPathLength: Int = Int.MaxValue,
                        maxPaths: Int = 10,
                        avoidLoops: Boolean = true): List[(Path, PathScore)] = {
-    
+
     assume(source.length == kmerSize)
     assume(sink.length == kmerSize)
-    
+
     var paths = List.empty[(Path, PathScore)]
-    
+
     // Add the source node to the frontier
-    var frontier: mutable.Stack[Kmer] = 
+    var frontier: mutable.Stack[Kmer] =
       if (mergeIndex.contains(source)) {
         val (pathIndex, mergedNode) = mergeIndex(source)
         mutable.Stack(mergedNode.drop(pathIndex))
       } else {
         mutable.Stack(source)
       }
-    
+
     var visited: mutable.Set[Kmer] = mutable.Set.empty
-    
+
     //Initialize an empty path
     var currentPath: Path = List.empty
     var pathScore: Int = 0
-    
+
     // explore branches until we find the sinck
     // or accumulate the maximum number of appropriate length paths
     while (frontier.nonEmpty && paths.size < maxPaths) {
       val next = frontier.pop()
-      
+
       // increase the path score
       pathScore += kmerScore(next)
-      
+
       // add the node on to the path
       currentPath = next :: currentPath
       visited += next
 
-      lazy val foundMergedSink = mergeIndex.get(sink).exists( _._2 == next)
-      val foundSink = (next == sink ||foundMergedSink )
+      lazy val foundMergedSink = mergeIndex.get(sink).exists(_._2 == next)
+      val foundSink = (next == sink || foundMergedSink)
       if (!foundSink && currentPath.size < maxPathLength) {
         // Keep searching down tree
 
-          val nextNodes = children (next)
-          frontier ++= (if (avoidLoops) nextNodes.filterNot(visited.contains) else nextNodes)
+        val nextNodes = children(next)
+        frontier ++= (if (avoidLoops) nextNodes.filterNot(visited.contains) else nextNodes)
 
       } else {
         //found sink or too long
@@ -198,7 +196,7 @@ class DeBrujinGraph(val kmerSize: Int,
           // Trim merged node if the sink is inside of it
           if (foundMergedSink) {
             val (mergedPathIdx, mergedNode) = mergeIndex(sink)
-            val mergedPathEndIdx =  mergedPathIdx + kmerSize
+            val mergedPathEndIdx = mergedPathIdx + kmerSize
             currentPath = currentPath.head.dropRight(mergedNode.length - mergedPathEndIdx) :: currentPath.tail
           }
           // Found legitimate path to sink, save path
@@ -220,7 +218,7 @@ class DeBrujinGraph(val kmerSize: Int,
   }
 
   /**
-   * Find all children of a given node 
+   * Find all children of a given node
    * @param node
    * @return
    */
@@ -229,17 +227,17 @@ class DeBrujinGraph(val kmerSize: Int,
   }
 
   /**
-   * Find all parents of a given node 
+   * Find all parents of a given node
    * @param node
    * @return
    */
   def parents(node: Kmer): List[Kmer] = {
     suffixTable.getOrElse(kmerPrefix(node), List.empty)
   }
-  
+
   def printGraph: Unit = {
     var indent = 0
-    var frontier: mutable.Stack[Kmer] = mutable.Stack(roots.toSeq:_*)
+    var frontier: mutable.Stack[Kmer] = mutable.Stack(roots.toSeq: _*)
     while (frontier.nonEmpty) {
       val next = frontier.pop()
       val nextChildren = children(next)
@@ -260,11 +258,11 @@ object DeBrujinGraph {
   def apply(sequences: Seq[Sequence],
             kmerSize: Int,
             minOccurrence: Int = 1,
-            mergeNodes: Boolean = false ): DeBrujinGraph = {
+            mergeNodes: Boolean = false): DeBrujinGraph = {
 
     val kmerCounts = mutable.Map.empty[DeBrujinGraph#Kmer, Int]
 
-    sequences//.filter(Bases.allStandardBases(_))
+    sequences //.filter(Bases.allStandardBases(_))
       .foreach(
         _.sliding(kmerSize)
           .foreach(seq => {
@@ -276,7 +274,7 @@ object DeBrujinGraph {
     val graph = new DeBrujinGraph(kmerSize, kmerCounts)
     //TODO(arahuja) Only add in kmers once they hit minOccurrence rather than post-pruning
     graph.pruneKmers(minOccurrence)
-    
+
     if (mergeNodes) graph.mergeNodes()
 
     graph
@@ -291,11 +289,11 @@ object DeBrujinGraph {
 
   type Sequences = Seq[String]
 
-//  def fromString(sequences: Sequences,
-//                 kmerSize: Int,
-//                 minOccurrence: Int = 1,
-//                 isString: Boolean = true): DeBrujinGraph = {
-//    DeBrujinGraph(sequences.view.map(Bases.stringToBases(_)), kmerSize, minOccurrence)
-//  }
+  //  def fromString(sequences: Sequences,
+  //                 kmerSize: Int,
+  //                 minOccurrence: Int = 1,
+  //                 isString: Boolean = true): DeBrujinGraph = {
+  //    DeBrujinGraph(sequences.view.map(Bases.stringToBases(_)), kmerSize, minOccurrence)
+  //  }
 
 }

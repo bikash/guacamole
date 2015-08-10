@@ -1,55 +1,53 @@
 package org.hammerlab.guacamole.assembly
 
 import org.hammerlab.guacamole.reads.MDTagUtils
-import org.hammerlab.guacamole.{Bases, Common, ReadSet}
-
+import org.hammerlab.guacamole.{ Bases, Common, ReadSet }
 
 object DeBrujinGraphSimpleAssembly extends App {
-  
+
   override def main(args: Array[String]) = {
-//    val kmerSize = 17
-//
+    //    val kmerSize = 17
+    //
     println("DeBrujinGraphSimpleAssembly")
     val sc = Common.createSparkContext()
 
-//    val reference =
-//      "GAGGATCTGCCATGGCCGGGCGAGCTGGAGGAGCGAGGAGGAGGCAGGAGGA"
-//
-//    val sequences =
-//      Seq(
-//        reference.substring(0, 25),
-//        reference.substring(5, 30),
-//        reference.substring(7, 32),
-//        reference.substring(10, 35),
-//        reference.substring(19, 41),
-//        reference.substring(22, 44),
-//        reference.substring(25, 47),
-//        reference.substring(31, 52) + "TTT"
-//      )
-//
-//
-//    val currentGraph: DeBrujinGraph = DeBrujinGraph(
-//      sequences,
-//      kmerSize,
-//      minOccurrence = 1,
-//      mergeNodes = false
-//    )
-//
-//    val referenceKmerSource = reference.take(kmerSize)
-//    assert(referenceKmerSource.size == (kmerSize))
-//    val referenceKmerSink = reference.takeRight(kmerSize)
-//
-//    println("Kmers in Graph")
-//    currentGraph.kmerCounts.keySet.foreach(println)
-//    println()
-//
-//    println(s"Path start: $referenceKmerSource")
-//    println(s"Path end: $referenceKmerSink")
-//
-//    val paths = currentGraph.depthFirstSearch(referenceKmerSource, referenceKmerSink)
-//    println(paths.length)
-//    println(s"Reconstructed children: ${DeBrujinGraph.mergeKmers(paths(0)._1.reverse)}")
-
+    //    val reference =
+    //      "GAGGATCTGCCATGGCCGGGCGAGCTGGAGGAGCGAGGAGGAGGCAGGAGGA"
+    //
+    //    val sequences =
+    //      Seq(
+    //        reference.substring(0, 25),
+    //        reference.substring(5, 30),
+    //        reference.substring(7, 32),
+    //        reference.substring(10, 35),
+    //        reference.substring(19, 41),
+    //        reference.substring(22, 44),
+    //        reference.substring(25, 47),
+    //        reference.substring(31, 52) + "TTT"
+    //      )
+    //
+    //
+    //    val currentGraph: DeBrujinGraph = DeBrujinGraph(
+    //      sequences,
+    //      kmerSize,
+    //      minOccurrence = 1,
+    //      mergeNodes = false
+    //    )
+    //
+    //    val referenceKmerSource = reference.take(kmerSize)
+    //    assert(referenceKmerSource.size == (kmerSize))
+    //    val referenceKmerSink = reference.takeRight(kmerSize)
+    //
+    //    println("Kmers in Graph")
+    //    currentGraph.kmerCounts.keySet.foreach(println)
+    //    println()
+    //
+    //    println(s"Path start: $referenceKmerSource")
+    //    println(s"Path end: $referenceKmerSink")
+    //
+    //    val paths = currentGraph.depthFirstSearch(referenceKmerSource, referenceKmerSink)
+    //    println(paths.length)
+    //    println(s"Reconstructed children: ${DeBrujinGraph.mergeKmers(paths(0)._1.reverse)}")
 
     val kmerSize = 45
     val reads = ReadSet(
@@ -84,8 +82,8 @@ object DeBrujinGraphSimpleAssembly extends App {
     //currentGraph.printGraph
 
     val paths = currentGraph.depthFirstSearch(
-        referenceKmerSource,
-        referenceKmerSink
+      referenceKmerSource,
+      referenceKmerSink
     )
 
     println(paths.length)

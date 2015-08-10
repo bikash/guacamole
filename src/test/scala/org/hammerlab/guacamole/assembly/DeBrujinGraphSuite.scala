@@ -1,6 +1,6 @@
 package org.hammerlab.guacamole.assembly
 
-import org.hammerlab.guacamole.util.{GuacFunSuite, TestUtil}
+import org.hammerlab.guacamole.util.{ GuacFunSuite, TestUtil }
 import org.scalatest.Matchers
 
 class DeBrujinGraphSuite extends GuacFunSuite with Matchers {
@@ -12,6 +12,15 @@ class DeBrujinGraphSuite extends GuacFunSuite with Matchers {
 
   lazy val smallWindowSequences = {
     smallWindowReads.map(_.sequence)
+  }
+
+  test("Kmer.mergeKmers") {
+    val kmers = Seq("TTTC", "TTCC", "TCCC", "CCCC")
+    val longerKmer = DeBrujinGraph.mergeKmers(kmers)
+
+    longerKmer.length should be (7)
+    longerKmer.toString should be("TTTCCCC")
+
   }
 
   test("build graph") {
@@ -69,25 +78,25 @@ class DeBrujinGraphSuite extends GuacFunSuite with Matchers {
     val firstKmer = "TCA"
     val nextKmer = "CAT"
     val lastKmer = "AAA"
-    
+
     val tcaChildren = graph.children("TCA")
-    graph.kmerSuffix("TCA") should be ("CA")
+    graph.kmerSuffix("TCA") should be("CA")
     tcaChildren.length should be(1) // CA is the suffix and CAT is the only kmer
-    tcaChildren(0) should be ("CAT")
+    tcaChildren(0) should be("CAT")
 
     val tcaParents = graph.parents("TCA")
-    graph.kmerPrefix("TCA") should be ("TC")
+    graph.kmerPrefix("TCA") should be("TC")
     tcaParents.length should be(1) // TC is the prefix and ATC is the only kmer
     tcaParents(0) should be("ATC")
 
     val catParents = graph.parents("CAT")
-    graph.kmerPrefix("CAT") should be ("CA")
+    graph.kmerPrefix("CAT") should be("CA")
     catParents.length should be(2) // CA is the prefix, TCA and ACA are parents
     catParents(0) should be("TCA")
     catParents(1) should be("ACA")
 
     val catChildren = graph.children("CAT")
-    graph.kmerSuffix("CAT") should be ("AT")
+    graph.kmerSuffix("CAT") should be("AT")
     catChildren.length should be(2) // CA is the suffix, ATC and ATA are children
   }
 
@@ -97,7 +106,7 @@ class DeBrujinGraphSuite extends GuacFunSuite with Matchers {
     val graph = DeBrujinGraph(Seq(sequence), kmerSize)
     graph.kmerCounts.keys.size should be(sequence.length - kmerSize + 1)
 
-    graph.kmerCounts.foreach( _._2 should be (1) )
+    graph.kmerCounts.foreach(_._2 should be(1))
 
   }
 
@@ -110,7 +119,7 @@ class DeBrujinGraphSuite extends GuacFunSuite with Matchers {
 
     val merageableForward = graph.mergeForward(firstKmer)
     merageableForward.size should be(9)
-    
+
     //TestUtil.assertBases(graph.mergeKmers(merageableForward.reverse), sequence)
     DeBrujinGraph.mergeKmers(merageableForward.reverse) should be(sequence)
   }
@@ -125,7 +134,7 @@ class DeBrujinGraphSuite extends GuacFunSuite with Matchers {
     val merageableReverse = graph.mergeBackward(firstKmer)
     merageableReverse.size should be(9)
     //TestUtil.assertBases(, sequence)
-    DeBrujinGraph.mergeKmers(merageableReverse) should be (sequence)
+    DeBrujinGraph.mergeKmers(merageableReverse) should be(sequence)
   }
 
   test("find forward unique path; with bubble") {
@@ -179,7 +188,6 @@ class DeBrujinGraphSuite extends GuacFunSuite with Matchers {
     seq1MerageableReverse.size should be(2)
     TestUtil.assertBases(DeBrujinGraph.mergeKmers(seq1MerageableReverse), "TGGGT")
 
-
     val seq2End = "GGAT"
     val seq2MerageableReverse = graph.mergeBackward(seq2End)
     seq2MerageableReverse.size should be(2)
@@ -216,7 +224,7 @@ class DeBrujinGraphSuite extends GuacFunSuite with Matchers {
 
   test("test merge nodes; with variant") {
 
-    val sequence =        "AAATCCCTGGGT"
+    val sequence = "AAATCCCTGGGT"
     val variantSequence = "AAATCCCTGGAT"
     val kmerSize = 4
     val graph = DeBrujinGraph(Seq(sequence, variantSequence), kmerSize)
@@ -232,8 +240,8 @@ class DeBrujinGraphSuite extends GuacFunSuite with Matchers {
     assert(graph.kmerCounts.contains("TGGAT"))
 
   }
-  
-  test ("find single unique path in sequence") {
+
+  test("find single unique path in sequence") {
 
     val reference =
       "GAGGATCTGCCATGGCCGGGCGAGCTGGAGGAGCGAGGAGGAGGCAGGAGGA"
@@ -261,33 +269,32 @@ class DeBrujinGraphSuite extends GuacFunSuite with Matchers {
     val referenceKmerSource = reference.take(kmerSize)
     val referenceKmerSink = reference.takeRight(kmerSize)
     val paths = graph.depthFirstSearch(referenceKmerSource, referenceKmerSink)
-    
+
     paths.length should be(1)
-    DeBrujinGraph.mergeKmers(paths(0)._1.reverse) should be (reference)
-    
+    DeBrujinGraph.mergeKmers(paths(0)._1.reverse) should be(reference)
+
     graph.mergeNodes()
     val pathsAfterMerging = graph.depthFirstSearch(referenceKmerSource, referenceKmerSink)
     pathsAfterMerging.length should be(1)
-    DeBrujinGraph.mergeKmers(pathsAfterMerging(0)._1.reverse) should be (reference)
-
+    DeBrujinGraph.mergeKmers(pathsAfterMerging(0)._1.reverse) should be(reference)
 
   }
 
-////  sparkTest("assemble reads with snvs") {
-////
-////    val kmerSize = 20
-////    val
-////    val graph = DeBrujinGraph(
-////      snpReads.map(_.sequence),
-////      kmerSize,
-////      minOccurrence = 2,
-////      mergeNodes = true
-////    )
-////
-////    assert(graph.kmerCounts(referenceRoot) > 0)
-////    assert(graph.kmerCounts(referenceSink) > 0)
-////
-////    val paths = graph.depthFirstSearch(referenceRoot, referenceSink)
-////    paths.length === 4
-////  }
+  ////  sparkTest("assemble reads with snvs") {
+  ////
+  ////    val kmerSize = 20
+  ////    val
+  ////    val graph = DeBrujinGraph(
+  ////      snpReads.map(_.sequence),
+  ////      kmerSize,
+  ////      minOccurrence = 2,
+  ////      mergeNodes = true
+  ////    )
+  ////
+  ////    assert(graph.kmerCounts(referenceRoot) > 0)
+  ////    assert(graph.kmerCounts(referenceSink) > 0)
+  ////
+  ////    val paths = graph.depthFirstSearch(referenceRoot, referenceSink)
+  ////    paths.length === 4
+  ////  }
 }
